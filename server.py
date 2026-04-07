@@ -1114,7 +1114,6 @@ def get_call_permissions(waba_number: str) -> str:
 
 if __name__ == "__main__":
     import os
-    import uvicorn
     port = int(os.environ.get("PORT", 8000))
     print("🚀 JugaadX MCP Server starting...")
     print(f"📡 Base URL: {BASE_URL}")
@@ -1122,4 +1121,4 @@ if __name__ == "__main__":
     print("🛠️  All tools ready!\n")
     mcp.settings.host = "0.0.0.0"
     mcp.settings.port = port
-    mcp.run(transport="sse")
+    mcp.run(transport="streamable-http")
