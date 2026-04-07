@@ -1120,4 +1120,6 @@ if __name__ == "__main__":
     print(f"📡 Base URL: {BASE_URL}")
     print(f"🔑 API Key: {'✅ Loaded' if JUGAADX_API_KEY != 'YOUR_API_KEY_HERE' else '❌ Not set!'}")
     print("🛠️  All tools ready!\n")
-    uvicorn.run(mcp.sse_app(), host="0.0.0.0", port=port)
+    mcp.settings.host = "0.0.0.0"
+    mcp.settings.port = port
+    mcp.run(transport="sse")
