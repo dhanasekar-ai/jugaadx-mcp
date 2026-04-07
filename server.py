@@ -1114,11 +1114,10 @@ def get_call_permissions(waba_number: str) -> str:
 
 if __name__ == "__main__":
     import os
+    import uvicorn
     port = int(os.environ.get("PORT", 8000))
     print("🚀 JugaadX MCP Server starting...")
     print(f"📡 Base URL: {BASE_URL}")
     print(f"🔑 API Key: {'✅ Loaded' if JUGAADX_API_KEY != 'YOUR_API_KEY_HERE' else '❌ Not set!'}")
     print("🛠️  All tools ready!\n")
-    mcp.settings.host = "0.0.0.0"
-    mcp.settings.port = port
-    mcp.run(transport="streamable-http")
+    uvicorn.run(mcp.sse_app(), host="0.0.0.0", port=port)
