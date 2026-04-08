@@ -82,17 +82,20 @@ def send_template_message(
         waba_number: Your WhatsApp Business number registered on JugaadX
         template_name: Name of the approved WhatsApp template
         language_code: Language code (default: 'en')
-        components: Optional list of component objects for dynamic variables/buttons
+        components: Optional templateData dict for dynamic variables/buttons
     """
     result = api_post("/whatsapp/message/template", {
-        "to": to_number,
-        "from": waba_number,
-        "type": "template",
-        "template": {
-            "name": template_name,
-            "language": {"code": language_code},
-            "components": components or []
-        }
+        "messages": [
+            {
+                "to": to_number,
+                "from": waba_number,
+                "content": {
+                    "templateName": template_name,
+                    "language": language_code,
+                    "templateData": components or {}
+                }
+            }
+        ]
     })
     return json.dumps(result, indent=2)
 
@@ -114,8 +117,9 @@ def send_text_message(
     result = api_post("/whatsapp/message/text", {
         "to": to_number,
         "from": waba_number,
-        "type": "text",
-        "text": {"body": message}
+        "content": {
+            "text": message
+        }
     })
     return json.dumps(result, indent=2)
 
@@ -133,15 +137,19 @@ def send_video_message(
     Args:
         to_number: Recipient phone number with country code
         waba_number: Your WhatsApp Business number
-        video_url: Public URL of the video file
+        video_url: Public URL of the video file (MP4)
         caption: Optional caption text
     """
-    result = api_post("/whatsapp/message/video", {
+    payload = {
         "to": to_number,
         "from": waba_number,
-        "type": "video",
-        "video": {"link": video_url, "caption": caption}
-    })
+        "content": {
+            "mediaUrl": video_url,
+        }
+    }
+    if caption:
+        payload["content"]["caption"] = caption
+    result = api_post("/whatsapp/message/video", payload)
     return json.dumps(result, indent=2)
 
 
@@ -157,13 +165,14 @@ def send_audio_message(
     Args:
         to_number: Recipient phone number with country code
         waba_number: Your WhatsApp Business number
-        audio_url: Public URL of the audio file
+        audio_url: Public URL of the audio file (MP3)
     """
     result = api_post("/whatsapp/message/audio", {
         "to": to_number,
         "from": waba_number,
-        "type": "audio",
-        "audio": {"link": audio_url}
+        "content": {
+            "mediaUrl": audio_url
+        }
     })
     return json.dumps(result, indent=2)
 
@@ -181,15 +190,19 @@ def send_image_message(
     Args:
         to_number: Recipient phone number with country code
         waba_number: Your WhatsApp Business number
-        image_url: Public URL of the image
+        image_url: Public URL of the image (JPG, PNG, WEBP)
         caption: Optional caption text
     """
-    result = api_post("/whatsapp/message/image", {
+    payload = {
         "to": to_number,
         "from": waba_number,
-        "type": "image",
-        "image": {"link": image_url, "caption": caption}
-    })
+        "content": {
+            "mediaUrl": image_url,
+        }
+    }
+    if caption:
+        payload["content"]["caption"] = caption
+    result = api_post("/whatsapp/message/image", payload)
     return json.dumps(result, indent=2)
 
 
@@ -211,12 +224,17 @@ def send_document_message(
         filename: Display name for the file (e.g. 'invoice.pdf')
         caption: Optional caption text
     """
-    result = api_post("/whatsapp/message/document", {
+    payload = {
         "to": to_number,
         "from": waba_number,
-        "type": "document",
-        "document": {"link": document_url, "filename": filename, "caption": caption}
-    })
+        "content": {
+            "mediaUrl": document_url,
+            "filename": filename,
+        }
+    }
+    if caption:
+        payload["content"]["caption"] = caption
+    result = api_post("/whatsapp/message/document", payload)
     return json.dumps(result, indent=2)
 
 
@@ -240,16 +258,19 @@ def send_location_message(
         name: Optional location name (e.g. 'Our Office')
         address: Optional address string
     """
+    content = {
+        "latitude": latitude,
+        "longitude": longitude,
+    }
+    if name:
+        content["name"] = name
+    if address:
+        content["address"] = address
+
     result = api_post("/whatsapp/message/location", {
         "to": to_number,
         "from": waba_number,
-        "type": "location",
-        "location": {
-            "latitude": latitude,
-            "longitude": longitude,
-            "name": name,
-            "address": address
-        }
+        "content": content
     })
     return json.dumps(result, indent=2)
 
@@ -275,22 +296,19 @@ def send_interactive_button_message(
         header_text: Optional header text
         footer_text: Optional footer text
     """
+    content = {
+        "body": body_text,
+        "buttons": buttons,
+    }
+    if header_text:
+        content["header"] = header_text
+    if footer_text:
+        content["footer"] = footer_text
+
     result = api_post("/whatsapp/message/interactive", {
         "to": to_number,
         "from": waba_number,
-        "type": "interactive",
-        "interactive": {
-            "type": "button",
-            "header": {"type": "text", "text": header_text} if header_text else None,
-            "body": {"text": body_text},
-            "footer": {"text": footer_text} if footer_text else None,
-            "action": {
-                "buttons": [
-                    {"type": "reply", "reply": {"id": b["id"], "title": b["title"]}}
-                    for b in buttons
-                ]
-            }
-        }
+        "content": content
     })
     return json.dumps(result, indent=2)
 
@@ -319,17 +337,20 @@ def send_interactive_list_message(
         header_text: Optional header text
         footer_text: Optional footer text
     """
-    result = api_post("/whatsapp/message/interactive/list", {
+    content = {
+        "body": body_text,
+        "button": button_label,
+        "sections": sections,
+    }
+    if header_text:
+        content["header"] = header_text
+    if footer_text:
+        content["footer"] = footer_text
+
+    result = api_post("/whatsapp/message/interactive-list", {
         "to": to_number,
         "from": waba_number,
-        "type": "interactive",
-        "interactive": {
-            "type": "list",
-            "header": {"type": "text", "text": header_text} if header_text else None,
-            "body": {"text": body_text},
-            "footer": {"text": footer_text} if footer_text else None,
-            "action": {"button": button_label, "sections": sections}
-        }
+        "content": content
     })
     return json.dumps(result, indent=2)
 
@@ -341,7 +362,10 @@ def send_interactive_list_message(
 @mcp.tool()
 def export_chats_to_excel(
     customer_number: str,
-    waba_number: str
+    waba_number: str,
+    start_date: str = "",
+    end_date: str = "",
+    include_media: bool = True
 ) -> str:
     """
     Export all chat messages for a customer to Excel format.
@@ -349,11 +373,21 @@ def export_chats_to_excel(
     Args:
         customer_number: Customer's phone number with country code
         waba_number: Your WhatsApp Business number
+        start_date: Start date in DD-MM-YYYY format (optional)
+        end_date: End date in DD-MM-YYYY format (optional)
+        include_media: Whether to include media files (default: True)
     """
-    result = api_post("/whatsapp/chat/export", {
-        "customerNumber": customer_number,
-        "wabaNumber": waba_number
-    })
+    payload = {
+        "wabaNumber": waba_number,
+        "customerPhoneNumber": customer_number,
+        "includeMedia": include_media,
+    }
+    if start_date:
+        payload["startDate"] = start_date
+    if end_date:
+        payload["endDate"] = end_date
+
+    result = api_post("/export-chats", payload)
     return json.dumps(result, indent=2)
 
 
@@ -361,8 +395,8 @@ def export_chats_to_excel(
 def get_chat_messages(
     customer_number: str,
     waba_number: str,
-    page: int = 1,
-    limit: int = 50
+    start_date: str = "",
+    end_date: str = ""
 ) -> str:
     """
     Get chat message history for a specific customer.
@@ -370,15 +404,19 @@ def get_chat_messages(
     Args:
         customer_number: Customer's phone number with country code
         waba_number: Your WhatsApp Business number
-        page: Page number for pagination (default: 1)
-        limit: Number of messages per page (default: 50)
+        start_date: Start date in DD-MM-YYYY format (optional)
+        end_date: End date in DD-MM-YYYY format (optional)
     """
-    result = api_get("/whatsapp/chat/messages", params={
+    params = {
         "customerNumber": customer_number,
         "wabaNumber": waba_number,
-        "page": page,
-        "limit": limit
-    })
+    }
+    if start_date:
+        params["startDate"] = start_date
+    if end_date:
+        params["endDate"] = end_date
+
+    result = api_get("/chat-messages", params=params)
     return json.dumps(result, indent=2)
 
 
@@ -388,29 +426,29 @@ def get_chat_messages(
 
 @mcp.tool()
 def send_broadcast_message(
-    group_id: str,
+    group_name: str,
     waba_number: str,
     template_name: str,
     language_code: str = "en",
-    components: list = None
+    template_data: dict = None
 ) -> str:
     """
     Send a WhatsApp template message to an entire broadcast group.
 
     Args:
-        group_id: The ID of the broadcast group to send to
+        group_name: The name of the broadcast group to send to
         waba_number: Your WhatsApp Business number
         template_name: Name of the approved template to use
         language_code: Language code (default: 'en')
-        components: Optional list of component objects for dynamic variables
+        template_data: Optional templateData dict for dynamic variables
     """
-    result = api_post("/whatsapp/broadcast/message", {
-        "groupId": group_id,
-        "wabaNumber": waba_number,
-        "template": {
-            "name": template_name,
-            "language": {"code": language_code},
-            "components": components or []
+    result = api_post("/whatsapp/message/broadcast", {
+        "groupName": group_name,
+        "from": waba_number,
+        "content": {
+            "templateName": template_name,
+            "language": language_code,
+            "templateData": template_data or {}
         }
     })
     return json.dumps(result, indent=2)
@@ -427,12 +465,12 @@ def create_broadcast_group(
 
     Args:
         name: Name for the broadcast group (e.g. 'April Offer Campaign')
-        waba_number: Your WhatsApp Business number
-        members: Optional list of phone numbers to add immediately
+        waba_number: Your WhatsApp Business number (used for context only)
+        members: Optional list of member dicts with 'name' and 'phone' keys.
+                 Example: [{"name": "John", "phone": "919876543210"}]
     """
-    result = api_post("/whatsapp/broadcast/group", {
+    result = api_post("/groups", {
         "name": name,
-        "wabaNumber": waba_number,
         "members": members or []
     })
     return json.dumps(result, indent=2)
@@ -441,41 +479,45 @@ def create_broadcast_group(
 @mcp.tool()
 def delete_broadcast_groups(
     group_ids: list,
-    waba_number: str
+    waba_number: str = ""
 ) -> str:
     """
     Delete one or more broadcast groups.
 
     Args:
         group_ids: List of group IDs to delete
-        waba_number: Your WhatsApp Business number
+        waba_number: Your WhatsApp Business number (unused, kept for consistency)
     """
-    result = api_delete("/whatsapp/broadcast/groups", {
-        "groupIds": group_ids,
-        "wabaNumber": waba_number
+    result = api_delete("/groups", {
+        "groupIds": group_ids
     })
     return json.dumps(result, indent=2)
 
 
 @mcp.tool()
 def get_broadcast_groups(
-    waba_number: str,
-    page: int = 1,
-    limit: int = 20
+    waba_number: str = "",
+    search_query: str = "",
+    order_by: str = "DATE_CREATED",
+    order_format: str = "DESCENDING"
 ) -> str:
     """
     Get a paginated list of all broadcast groups.
 
     Args:
-        waba_number: Your WhatsApp Business number
-        page: Page number (default: 1)
-        limit: Groups per page (default: 20)
+        waba_number: Your WhatsApp Business number (unused, kept for consistency)
+        search_query: Optional search query to filter groups by name
+        order_by: Field to order by: 'NAME' or 'DATE_CREATED' (default: 'DATE_CREATED')
+        order_format: Order direction: 'ASCENDING' or 'DESCENDING' (default: 'DESCENDING')
     """
-    result = api_get("/whatsapp/broadcast/groups", params={
-        "wabaNumber": waba_number,
-        "page": page,
-        "limit": limit
-    })
+    params = {
+        "orderBy": order_by,
+        "format": order_format,
+    }
+    if search_query:
+        params["searchQuery"] = search_query
+
+    result = api_get("/groups", params=params)
     return json.dumps(result, indent=2)
 
 
@@ -490,12 +532,12 @@ def add_members_to_broadcast_group(
 
     Args:
         group_id: The ID of the broadcast group
-        waba_number: Your WhatsApp Business number
-        members: List of phone numbers to add (with country code)
+        waba_number: Your WhatsApp Business number (unused, kept for consistency)
+        members: List of member dicts with 'name' (optional) and 'phone' (required).
+                 Example: [{"name": "John", "phone": "919876543210"}]
     """
-    result = api_post("/whatsapp/broadcast/group/members", {
+    result = api_post("/groups/add-members", {
         "groupId": group_id,
-        "wabaNumber": waba_number,
         "members": members
     })
     return json.dumps(result, indent=2)
@@ -513,6 +555,7 @@ def create_template(
     body_text: str,
     waba_number: str,
     header_text: str = "",
+    header_format: str = "TEXT",
     footer_text: str = "",
     buttons: list = None
 ) -> str:
@@ -521,25 +564,37 @@ def create_template(
 
     Args:
         name: Template name — lowercase, underscores only (e.g. 'order_confirmation')
-        category: 'MARKETING', 'UTILITY', or 'AUTHENTICATION'
+        category: 'MARKETING' or 'UTILITY'
         language: Language code (e.g. 'en', 'hi', 'ta')
         body_text: Main body. Use {{1}}, {{2}} etc. for dynamic variables.
         waba_number: Your WhatsApp Business number
         header_text: Optional header text
+        header_format: Header format: 'TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT' (default: 'TEXT')
         footer_text: Optional footer text (e.g. 'Reply STOP to unsubscribe')
-        buttons: Optional list of button dicts
+        buttons: Optional list of button dicts.
+                 Example: [{"type": "URL", "text": "Visit", "url": "https://example.com"}]
+                 or [{"type": "QUICK_REPLY", "text": "Yes"}]
     """
-    result = api_post("/whatsapp/template", {
+    components = {
+        "body": {"text": body_text}
+    }
+    if header_text:
+        components["header"] = {
+            "format": header_format,
+            "text": header_text
+        }
+    if footer_text:
+        components["footer"] = {"text": footer_text}
+    if buttons:
+        components["buttons"] = buttons
+
+    result = api_post("/template", {
         "name": name,
         "category": category,
         "language": language,
-        "wabaNumber": waba_number,
-        "components": [
-            *([{"type": "HEADER", "format": "TEXT", "text": header_text}] if header_text else []),
-            {"type": "BODY", "text": body_text},
-            *([{"type": "FOOTER", "text": footer_text}] if footer_text else []),
-            *([{"type": "BUTTONS", "buttons": buttons}] if buttons else []),
-        ]
+        "wabaNumbers": [waba_number],
+        "allowCategoryUpdate": True,
+        "components": components
     })
     return json.dumps(result, indent=2)
 
@@ -556,7 +611,7 @@ def delete_template(
         template_name: Name of the template to delete
         waba_number: Your WhatsApp Business number
     """
-    result = api_delete("/whatsapp/template", {
+    result = api_delete("/template", {
         "name": template_name,
         "wabaNumber": waba_number
     })
@@ -584,7 +639,7 @@ def edit_template(
         payload["body"] = body_text
     if footer_text:
         payload["footer"] = footer_text
-    result = api_patch("/whatsapp/template", payload)
+    result = api_patch("/template", payload)
     return json.dumps(result, indent=2)
 
 
@@ -596,7 +651,7 @@ def get_templates(waba_number: str) -> str:
     Args:
         waba_number: Your WhatsApp Business number
     """
-    result = api_get("/whatsapp/template", params={"wabaNumber": waba_number})
+    result = api_get("/template", params={"wabaNumber": waba_number})
     return json.dumps(result, indent=2)
 
 
@@ -1001,16 +1056,10 @@ def register_webhook(
         url: Your endpoint URL that will receive webhook POST requests
         waba_number: Your WhatsApp Business number
         triggers: List of event triggers to subscribe to. Available options:
-                  'message_status_update' - when message status changes
-                  'message_received'      - when a new message is received
-                  'chat_assigned'         - when chat is assigned to agent
-                  'chat_unassigned'       - when chat is unassigned
-                  'lead_received_from_widget' - when lead from website widget
-                  'first_time_message'    - customer's first message ever
-                  'customer_custom_field_updated' - custom field changed
-                  'template_updated'      - template status changed
-                  'tag_added'             - tag added to conversation
-                  'tag_removed'           - tag removed from conversation
+                  'message_status_update', 'message_received', 'chat_assigned',
+                  'chat_unassigned', 'lead_received_from_widget',
+                  'first_time_message', 'customer_custom_field_updated',
+                  'template_updated', 'tag_added', 'tag_removed'
     """
     result = api_post("/whatsapp/webhook", {
         "url": url,
@@ -1113,7 +1162,6 @@ def get_call_permissions(waba_number: str) -> str:
 # ═══════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    import os
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     print("🚀 JugaadX MCP Server starting...")
