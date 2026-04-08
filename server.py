@@ -28,7 +28,7 @@ JUGAADX_API_KEY = os.environ.get("JUGAADX_API_KEY", "YOUR_API_KEY_HERE")
 BASE_URL = "https://public.doubletick.io"
 
 HEADERS = {
-    "Authorization": f"Bearer {JUGAADX_API_KEY}",
+    "Authorization": f"{JUGAADX_API_KEY}",
     "Content-Type": "application/json",
     "Accept": "application/json",
 }
